@@ -1,4 +1,3 @@
-```
 # 📝 Blog App
 
 A full-featured blog application built with Django and PostgreSQL, allowing users to create, manage, and interact with posts.
@@ -60,4 +59,3 @@ A full-featured blog application built with Django and PostgreSQL, allowing user
 ## 📜 License
 
 This project is licensed under the MIT License.
-```
