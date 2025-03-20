@@ -1,0 +1,203 @@
+{% extends "blog/base.html" %}
+{% block content %}
+{% load humanize %}
+
+<article class="media content-section">
+    <img class="rounded-circle article-img" alt="image" src="{{ object.author.profile.image.url }}">
+    <div class="media-body">
+        <div class="article-metadata">
+            <a class="mr-2" href='{% url "user-posts" object.author.username %}'>{{ object.author }}</a>
+            <small class="text-muted">{{ object.date|date:"F d, Y" }}</small>
+            {% if object.author == user %}
+            <a class="btn btn-info btn-sm mt-1 mb-1" href='{% url "post-update" object.id %}'>Update Post</a>
+            <a class="btn btn-secondary btn-sm mt-1 mb-1" href='{% url "add-post-image" object.id %}'>Add
+                Image</a>
+            <a class="btn btn-secondary btn-sm mt-1 mb-1" href='{% url "delete-post-image" object.id %}'>Delete
+                Image</a>
+            <a class="btn btn-danger btn-sm mt-1 mb-1" href='{% url "post-delete" object.id %}'>Delete Post</a>
+            {% endif %}
+        </div>
+        <div class="content-section shadow-sm p-4 mb-4 bg-light rounded">
+            <h3 class="mb-4 font-weight-bold text-center text-dark">Blog Images</h3>
+            <div id="blogCarousel" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-inner rounded shadow-sm" style="max-height: 500px; overflow: hidden;">
+                    {% if object.header_image and object.header_image.url %}
+                    <div class="carousel-item active">
+                        <img src="{{ object.header_image.url }}" alt="image" class="d-block w-100 rounded"
+                             style="object-fit: cover; height: 500px;">
+                    </div>
+                    {% endif %}
+                    {% for image in images %}
+                    {% if image.image %}
+                    <div class="carousel-item {% if not object.image and forloop.first %}active{% endif %}">
+                        <img src="{{ image.image.url }}" alt="image" class="d-block w-100 rounded"
+                             style="object-fit: cover; height: 500px;">
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#blogCarousel"
+                        data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon bg-dark rounded-circle p-2 shadow"
+                              aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#blogCarousel"
+                        data-bs-slide="next">
+                        <span class="carousel-control-next-icon bg-dark rounded-circle p-2 shadow"
+                              aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+            </div>
+        </div>
+
+    </div>
+    <h2 class="article-title">{{ object.title }}</h2>
+    <p class="article-content">{{ object.content }}</p>
+
+    <!-- LIKES -->
+    <form action='{% url "like-post"  object.id %}' method="POST">
+        {% csrf_token %}
+        {% if post_is_liked %}
+        <button type="submit" name="blogpost_id" value="{{ object.id }}" class="btn">
+            <i class="fa-solid fa-heart" style="color: red"> {{ post.number_of_likes }} </i>
+            Like
+        </button>
+        {% else %}
+        <button type="submit" name="blogpost_id" value="{{ object.id }}" class="btn">
+            <i class="fa-solid fa-heart" style="color: red"> {{ post.number_of_likes }} </i>
+            Like
+        </button>
+        {% endif %}
+    </form>
+
+    <div class="container my-3">
+        {% if post.number_of_likes > 3 %}
+        <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse"
+                data-bs-target="#post-likes-all-{{ post.id }}"
+                aria-expanded="false" aria-controls="post-likes-all-{{ post.id }}">
+            All Likes
+        </button>
+    </div>
+    <div class="collapse" id="post-likes-all-{{ post.id }}">
+        <div class="card card-body">
+            <h6>Liked By:
+                {% for user in post.likes.all %}
+                <span class="badge rounded-pill text-bg-success"
+                      style="color: black"> {{ user.username }} </span>
+                {% endfor %}
+            </h6>
+        </div>
+    </div>
+    {% else %}
+    <div class="card card-body">
+        <h6>Liked By:
+            {% for user in post.likes.all %}
+            <span class="badge rounded-pill text-bg-success"
+                  style="color: black"> {{ user.username }} </span>
+            {% endfor %}
+        </h6>
+    </div>
+    {% endif %}
+    <div>
+
+        <div class="container my-3">
+            <h6 class="btn btn-sm btn-info">Comment ({{ post.comments.count }})</h6>
+            <div class="my-2">
+                {% if user.is_authenticated %}
+                <form action="{% url 'post-comment' post.pk %}" method="post">
+                    {% csrf_token %}
+                    <div class="from-group">
+                        <label for="EnterComment">Comment Here :</label>
+                        <input type="text" class="form-control" name="comment"
+                               placeholder="Enter your comment here">
+                        <button type="submit" class="btn btn-sm mt-2 btn-primary">Submit</button>
+                    </div>
+                </form>
+                {% else %}
+                <span class="badge text-bg-danger">Please log in to post a comment</span>
+                <a class="nav-item nav-link active link-primary badge text-bg-dark"
+                   style="text-decoration: underline"
+                   href="{% url 'user-login' %}">Login</a>
+                {% endif %}
+            </div>
+
+
+            {% for comment in post.comments.all %}
+            <div class="row my-4 border p-3 rounded shadow-sm">
+                <div class="col-md-1 mt-2">
+                    <img src="/media/img/user.png" alt="user" class="rounded-circle mx-auto d-block w-100">
+                </div>
+                <div class="col-md-11">
+                    <div class="d-flex justify-content-start align-items-center">
+                        <b class="me-2">{{ comment.user.username }}</b>
+                        <span class="badge bg-secondary text-light">{{ comment.date|naturaltime }}</span>
+
+                        {% if request.user == comment.user %}
+                        <form action="{% url 'comment-delete' comment.id %}" method="post" class="ms-3">
+                            {% csrf_token %}
+                            <button type="submit" class="badge mt-3 bg-danger text-light">
+                                Delete
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h6>{{ comment.comment }}</h6>
+                    </div>
+
+                    <div class="reply mt-3">
+                        <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#reply{{ comment.comment }}" aria-expanded="false"
+                                aria-controls="reply{{ comment.comment }}">
+                            Reply
+                        </button>
+
+                        <div class="collapse mt-3" id="reply{{ comment.comment }}">
+                            <form action="{% url 'comment-reply' comment.pk %}" method="post">
+                                {% csrf_token %}
+                                <div class="form-group">
+                                    <label for="EnterComment">Reply Here:</label>
+                                    <textarea id="EnterComment" class="form-control" name="reply"
+                                              placeholder="Enter your comment reply here" required></textarea>
+                                    <button type="submit" class="btn btn-sm btn-primary mt-2">Post Reply
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        {% for reply in comment.reply_comments.all %}
+                        <div class="row mt-3 border-top pt-3">
+                            <div class="col-md-1">
+                                <img src="/media/img/user.png" alt="user"
+                                     class="rounded-circle mx-auto d-block w-75">
+                            </div>
+                            <div class="col-md-11">
+                                <div class="d-flex justify-content-start align-items-center">
+                                    <b class="me-2">{{ reply.user.username }}</b>
+                                    <span class="badge bg-secondary text-light">{{ reply.date|naturaltime }}</span>
+                                    {% if request.user == reply.user %}
+                                    <form action="{% url 'delete-reply' reply.id %}" method="post" class="ms-3">
+                                        {% csrf_token %}
+                                        <button type="submit" class="badge mt-3 bg-danger text-light">
+                                            Delete
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                                <div class="mt-3">
+                                    <p class="mb-0">{{ reply.reply }}</p>
+                                </div>
+                            </div>
+
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+        </div>
+</article>
+
+{% endblock content %}
